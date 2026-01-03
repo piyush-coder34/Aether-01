@@ -3,100 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHER-01 PRO</title>
+    <title>AETHER-01 | SCANNER</title>
     <style>
-        :root { --neon: #00f2ff; --math: #00ff88; --sci: #bcfe01; --bg: #050505; }
+        :root { --neon: #00f2ff; --bg: #050505; }
         body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* Scanner Viewport */
-        #viewport { position: relative; height: 50%; border-bottom: 2px solid var(--neon); background: #000; }
-        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
-        .scan-line { position: absolute; width: 100%; height: 2px; background: var(--neon); top: 0; animation: scan 3s linear infinite; box-shadow: 0 0 15px var(--neon); z-index: 5; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        /* Camera & Capture Container */
+        #viewport { position: relative; height: 45%; border-bottom: 2px solid var(--neon); background: #000; }
+        video, canvas { width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; }
+        canvas { display: none; border: 2px solid #fff; } /* The Captured Photo */
 
-        /* Control Panel */
-        .controls { display: flex; justify-content: space-around; padding: 10px; background: #111; border-bottom: 1px solid #222; }
-        .mode-btn { border: 1px solid var(--neon); background: none; color: var(--neon); padding: 5px 10px; font-size: 10px; cursor: pointer; border-radius: 3px; }
-        .mode-btn.active { background: var(--neon); color: #000; box-shadow: 0 0 10px var(--neon); }
+        /* Buttons Area */
+        .tools { display: flex; justify-content: center; gap: 20px; padding: 10px; background: #111; }
+        .btn { border: 2px solid var(--neon); background: none; color: var(--neon); padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+        .cap-btn { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
 
-        /* Terminal */
-        #terminal { flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; background: rgba(0,0,0,0.9); }
-        .log { margin-bottom: 5px; }
-        .sys { color: #888; }
-        .data { color: var(--math); }
-
-        /* Input */
-        .input-box { padding: 15px; background: #000; display: flex; border-top: 1px solid #222; }
-        input { flex: 1; background: #111; border: 1px solid var(--neon); color: #fff; padding: 12px; outline: none; border-radius: 4px; }
+        #terminal { flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; background: #0a0a0a; }
+        .log { margin-bottom: 5px; border-left: 2px solid #222; padding-left: 8px; }
+        .input-box { padding: 10px; background: #000; display: flex; }
+        input { flex: 1; background: #111; border: 1px solid var(--neon); color: #fff; padding: 12px; outline: none; }
     </style>
 </head>
 <body>
 
 <div id="viewport">
-    <div class="scan-line"></div>
     <video id="lens" autoplay playsinline muted></video>
-</div>
+    <canvas id="photo"></canvas> </div>
 
-<div class="controls">
-    <button class="mode-btn active" onclick="setMode('MATH', '#00ff88')">MATH</button>
-    <button class="mode-btn" onclick="setMode('SCIENCE', '#bcfe01')">SCIENCE</button>
-    <button class="mode-btn" onclick="setMode('SST', '#ff8800')">SST</button>
+<div class="tools">
+    <button class="btn cap-btn" onclick="takePhoto()">CLICK PHOTO</button>
+    <button class="btn" onclick="resetLens()">RESET</button>
 </div>
 
 <div id="terminal">
-    <div class="log sys">[ SYSTEM ] AETHER-01 NEURAL LENS ONLINE...</div>
-    <div class="log sys">[ SYSTEM ] READY FOR DATA INPUT.</div>
+    <div class="log">> AETHER-01: SYSTEM READY...</div>
 </div>
 
 <div class="input-box">
-    <input type="text" id="userInput" placeholder="Type question (e.g. 'Solve Q5')..." onkeypress="if(event.key==='Enter') process()">
+    <input type="text" id="userInput" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') process()">
 </div>
 
 <script>
-    let currentMode = 'MATH';
-    let modeColor = '#00ff88';
+    const video = document.getElementById('lens');
+    const canvas = document.getElementById('photo');
+    const term = document.getElementById('terminal');
 
-    // Auto-start camera
+    // Start Camera
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(s => document.getElementById('lens').srcObject = s);
+        .then(s => video.srcObject = s);
 
-    function setMode(mode, color) {
-        currentMode = mode;
-        modeColor = color;
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        addLog(`[ SYSTEM ] MODE SWAPPED TO: ${mode}`, '#fff');
-        document.documentElement.style.setProperty('--neon', color);
+    function takePhoto() {
+        // Set canvas size to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw the current video frame onto the canvas
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        // Show photo, hide video
+        canvas.style.display = 'block';
+        video.style.visibility = 'hidden';
+        
+        addLog("[ SYSTEM ] PHOTO CAPTURED. ANALYZING TEXT...", var(--neon));
+    }
+
+    function resetLens() {
+        canvas.style.display = 'none';
+        video.style.visibility = 'visible';
+        addLog("[ SYSTEM ] LENS RESET. SCANNING...", "#888");
     }
 
     function process() {
         const input = document.getElementById('userInput');
-        const val = input.value.trim();
-        if(!val) return;
-
-        addLog(`STUDENT: ${val}`, '#ff007a');
-        
-        setTimeout(() => {
-            if(currentMode === 'MATH') {
-                addLog(`[AETHER-MATH] Processing ${val}... Solution found: 42. Check Step 2.`, modeColor);
-            } else if(currentMode === 'SCIENCE') {
-                addLog(`[AETHER-SCI] Analyzing biology prompt... Data: Photosynthesis occurs in chloroplasts.`, modeColor);
-            } else {
-                addLog(`[AETHER-SST] Accessing history archives... Key Date: 1947.`, modeColor);
-            }
-        }, 800);
-
+        if(!input.value) return;
+        addLog("STUDENT: " + input.value, "#ff007a");
+        setTimeout(() => addLog("AETHER: Target identified in photo. Answer is 10.", "#00ff88"), 600);
         input.value = "";
     }
 
-    function addLog(text, color) {
-        const t = document.getElementById('terminal');
+    function addLog(txt, color) {
         const d = document.createElement('div');
         d.className = 'log';
         d.style.color = color;
-        d.innerText = text;
-        t.appendChild(d);
-        t.scrollTop = t.scrollHeight;
+        d.innerText = txt;
+        term.appendChild(d);
+        term.scrollTop = term.scrollHeight;
     }
 </script>
 
